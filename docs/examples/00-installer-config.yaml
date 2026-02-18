@@ -1,0 +1,33 @@
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+        eno1:
+            optional: true
+            dhcp4: true
+            nameservers:
+                addresses: [10.6.2.6]
+                search: [image.local.com]
+        eno2:
+            optional: true
+            dhcp4: true
+            nameservers:
+                addresses: [10.6.2.6]
+                search: [image.local.com]
+        eno3:
+            optional: true
+            dhcp4: true
+            nameservers:
+                addresses: [10.6.2.6]
+                search: [image.local.com]
+        eno4:
+            dhcp4: true
+            nameservers:
+                addresses: [10.6.2.6]
+                search: [image.local.com]
+        ens39:
+            optional: true
+            dhcp4: true
+            nameservers:
+                addresses: [10.6.2.6]
+                search: [image.local.com]
+  version: 2

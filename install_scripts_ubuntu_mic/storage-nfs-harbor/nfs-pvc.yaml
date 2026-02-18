@@ -1,0 +1,13 @@
+# sc-nfs.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfsstorage-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 196Gi
+  storageClassName: nfsstorage-sc

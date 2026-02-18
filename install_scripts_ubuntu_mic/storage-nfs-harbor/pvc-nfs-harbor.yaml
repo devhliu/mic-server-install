@@ -1,0 +1,12 @@
+# pvc-nfs.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc-harbor
+spec:
+  storageClassName: nfs-csi-storage
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 200Gi

@@ -1,0 +1,20 @@
+# sc-nfs.yaml
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfsstorage-pv
+spec:
+  capacity:
+    storage: 512Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: nfsstorage-sc
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:
+    path: /data02/nfsstorage
+    server: 10.8.95.84

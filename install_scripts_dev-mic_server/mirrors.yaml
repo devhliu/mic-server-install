@@ -1,0 +1,53 @@
+mirrors:
+  python:
+    pip:
+      registry: https://pypi.mirrors.pku.edu.cn/simple
+      command: pip install -i https://pypi.mirrors.pku.edu.cn/simple some-package
+    conda:
+      channels:
+        - https://mirrors.pku.edu.cn/anaconda/pkgs/free/
+        - https://mirrors.pku.edu.cn/anaconda/pkgs/main/
+      commands:
+        - conda config --add channels https://mirrors.pku.edu.cn/anaconda/pkgs/free/
+        - conda config --add channels https://mirrors.pku.edu.cn/anaconda/pkgs/main/
+        - conda config --set show_channel_urls yes
+  npm:
+    registry: https://registry.npmmirror.com/
+    commands:
+      - npm config set registry https://registry.npmmirror.com/
+      - npm config get registry
+  docker:
+    registries:
+      docker_hub:
+        - https://docker.1ms.run
+        - https://registry.docker-cn.com
+        - https://dockerhub.azk8s.cn
+      gcr:
+        - https://gcr.azk8s.cn
+      quay:
+        - https://quay.azk8s.cn
+      k8s_gcr_images:
+        - https://registry.aliyuncs.com/google_containers
+    daemon_config:
+      docker_io_registry_mirrors:
+        - https://docker.1ms.run
+        - https://registry.docker-cn.com
+        - https://dockerhub.azk8s.cn
+        - https://mirror.ccs.tencentyun.com
+        - https://registry.dockermirror.com
+        - https://mirror.baidubce.com
+        - https://docker.m.daocloud.io
+        - https://dockerproxy.com
+        - https://docker.mirrors.sjtug.sjtu.edu.cn
+        - https://docker.nju.edu.cn
+  ubuntu:
+    apt_mirrors:
+      - https://mirrors.pku.edu.cn/ubuntu/
+      - https://mirrors.aliyun.com/ubuntu/
+      - https://mirrors.ustc.edu.cn/ubuntu/
+    sources_list_template:
+      codename: "<ubuntu-codename>"
+      entries:
+        - deb https://mirrors.pku.edu.cn/ubuntu/ <ubuntu-codename> main restricted universe multiverse
+        - deb https://mirrors.pku.edu.cn/ubuntu/ <ubuntu-codename>-updates main restricted universe multiverse
+        - deb https://mirrors.pku.edu.cn/ubuntu/ <ubuntu-codename>-security main restricted universe multiverse
