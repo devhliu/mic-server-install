@@ -8,8 +8,18 @@ function insert_text {
     rc=1
 
     echo "${YELLOW}Checking $insert_string in $filepath.. ${NC}"
-    [ -f $filepath ] || { echo "$filepath does not exist! -> abort." && exit 1; }
-    grep -q "$search_string" $filepath && echo "${YELLOW}SKIPPED: $insert_string ....${NC}" || { echo "${GREEN}Setting: $insert_string >> $filepath ${NC}" && rc=0 && sh -c "echo '$insert_string' >> $filepath"; }
+    if sudo [ ! -f "$filepath" ]; then
+         echo "$filepath does not exist! -> abort."
+         exit 1
+    fi
+    
+    if sudo grep -q "$search_string" "$filepath"; then
+        echo "${YELLOW}SKIPPED: $insert_string ....${NC}"
+    else
+        echo "${GREEN}Setting: $insert_string >> $filepath ${NC}"
+        rc=0
+        sudo sh -c "echo '$insert_string' >> '$filepath'"
+    fi
     return $rc
 }
 
@@ -73,12 +83,12 @@ microk8s stop
 
 set +e
 echo "Enable node_port-range=80-32000 ...";
-sudo insert_text "--service-node-port-range=80-32000" /var/snap/microk8s/current/args/kube-apiserver
+insert_text "--service-node-port-range=80-32000" /var/snap/microk8s/current/args/kube-apiserver
 # echo "Disable insecure port ...";
 # insert_text "--insecure-port=0" /var/snap/microk8s/current/args/kube-apiserver
 
 echo "Set limit of completed pods to 200 ...";
-sudo insert_text "--terminated-pod-gc-threshold=200" /var/snap/microk8s/current/args/kube-controller-manager
+insert_text "--terminated-pod-gc-threshold=200" /var/snap/microk8s/current/args/kube-controller-manager
 set -e
 
 echo "Set vm.max_map_count=262144"
