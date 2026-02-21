@@ -74,11 +74,12 @@ echo ""
 # Function to remove dirty (dangling) docker images
 remove_dirty_images() {
     echo "Checking for dirty (dangling) docker images..."
-    dirty_images=$(docker images --filter "dangling=true" -q)
+    # Using sudo to ensure permissions before group update takes effect
+    dirty_images=$(sudo docker images --filter "dangling=true" -q)
     if [ -n "$dirty_images" ]; then
         echo "Found dirty images, removing them..."
-        docker rmi $(docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
-        docker image prune -f
+        sudo docker rmi $(sudo docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
+        sudo docker image prune -f
         echo "Dirty images removed."
     else
         echo "No dirty images found."
@@ -97,6 +98,6 @@ case "$remove_choice" in
 esac
 
 echo ""
-echo "NOTE: To apply the docker group changes, please log out and log back in,"
-echo "or run the following command in your current session:"
-echo "newgrp docker"
+echo "Activating docker group..."
+# Switch to the new group immediately
+newgrp docker
