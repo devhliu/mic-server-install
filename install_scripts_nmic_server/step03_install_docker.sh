@@ -65,6 +65,7 @@ compose_version=$(docker compose version)
 # Add current user to docker group
 echo "Adding current user ($USER) to the docker group..."
 sudo usermod -aG docker $USER
+sudo chmod 666 /var/run/docker.sock
 
 echo "Success! Installed versions:"
 echo "- $docker_version"

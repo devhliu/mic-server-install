@@ -9,7 +9,7 @@ The script performs the following actions:
 3.  **Adds Docker Repository**: Configures the APT source list to use Aliyun's Docker mirror.
 4.  **Installs Docker Packages**: Installs `docker-ce`, `docker-ce-cli`, `containerd.io`, etc.
 5.  **Configures Daemon**: Creates `/etc/docker/daemon.json` with a list of registry mirrors.
-6.  **Configures User Group**: Adds the current user to the `docker` group to run docker commands without `sudo`.
+6.  **Configures Permissions**: Adds the current user to the `docker` group and sets socket permissions (`chmod 666 /var/run/docker.sock`) to allow immediate docker access without `sudo`.
 7.  **Cleans Up**: Offers to remove dangling docker images.
 
 ## Prerequisites
