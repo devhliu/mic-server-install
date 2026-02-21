@@ -137,8 +137,9 @@ configure_environment() {
   echo "Configuring environment variables for all users..."
 
   sudo tee "${profile_d_file}" > /dev/null <<'EOF'
-export SMC_DIR="/opt/simind/"
-export PATH="${SMC_DIR%/}/bin:${SMC_DIR%/}:${PATH}"
+export SIMIND_DIR="/opt/simind/"
+export SMC_DIR="${SIMIND_DIR%/}/smc_dir/"
+export PATH="${SIMIND_DIR%/}/bin:${SIMIND_DIR%/}:${PATH}"
 EOF
   sudo chmod 0644 "${profile_d_file}"
 
@@ -150,16 +151,27 @@ EOF
     sudo tee -a "${bashrc_file}" > /dev/null <<'EOF'
 
 # SIMIND environment configuration
-export SMC_DIR="/opt/simind/"
-export PATH="${SMC_DIR%/}/bin:${SMC_DIR%/}:${PATH}"
+export SIMIND_DIR="/opt/simind/"
+export SMC_DIR="${SIMIND_DIR%/}/smc_dir/"
+export PATH="${SIMIND_DIR%/}/bin:${SIMIND_DIR%/}:${PATH}"
 EOF
     echo "Auto-activation configured in ${bashrc_file}"
   else
-    echo "SIMIND already configured in ${bashrc_file}"
+    echo "Updating SIMIND configuration in ${bashrc_file}..."
+    sudo sed -i '/# SIMIND environment configuration/,+3d' "${bashrc_file}"
+    sudo tee -a "${bashrc_file}" > /dev/null <<'EOF'
+
+# SIMIND environment configuration
+export SIMIND_DIR="/opt/simind/"
+export SMC_DIR="${SIMIND_DIR%/}/smc_dir/"
+export PATH="${SIMIND_DIR%/}/bin:${SIMIND_DIR%/}:${PATH}"
+EOF
+    echo "Auto-activation updated in ${bashrc_file}"
   fi
 
   echo "Environment configured for all users (login and interactive shells)"
-  echo "SMC_DIR set to: ${simind_install_dir}/"
+  echo "SIMIND_DIR set to: ${simind_install_dir}/"
+  echo "SMC_DIR set to: ${simind_install_dir}/smc_dir/"
 }
 
 verify_installation() {
