@@ -53,6 +53,23 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
+# Install NVIDIA Container Toolkit
+echo "Installing NVIDIA Container Toolkit..."
+# Add the package repositories (using USTC mirror for China)
+curl -fsSL https://mirrors.ustc.edu.cn/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://mirrors.ustc.edu.cn/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://nvidia.github.io#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://mirrors.ustc.edu.cn#g' | \
+    sed "s#\$(ARCH)#$(dpkg --print-architecture)#g" | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Install the package
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# Configure the container runtime
+echo "Configuring NVIDIA container runtime..."
+sudo nvidia-ctk runtime configure --runtime=docker
+
 # Restart Docker to apply changes
 sudo systemctl daemon-reload
 sudo systemctl restart docker
@@ -61,6 +78,7 @@ sudo systemctl restart docker
 echo "Verifying installation..."
 docker_version=$(docker --version)
 compose_version=$(docker compose version)
+nvidia_ctk_version=$(nvidia-ctk --version)
 
 # Add current user to docker group
 echo "Adding current user ($USER) to the docker group..."
@@ -70,6 +88,7 @@ sudo chmod 666 /var/run/docker.sock
 echo "Success! Installed versions:"
 echo "- $docker_version"
 echo "- $compose_version"
+echo "- $nvidia_ctk_version"
 echo ""
 
 # Function to remove dirty (dangling) docker images
@@ -95,6 +114,40 @@ case "$remove_choice" in
         ;;
     *)
         echo "Skipping dirty image removal."
+        ;;
+esac
+
+echo ""
+
+# Function to install docker experimental features
+install_docker_experimental_features() {
+    echo "Installing Docker experimental features..."
+    
+    # 1. docker model install
+    echo "Executing: docker model install"
+    if sudo docker model install; then
+         echo "Successfully ran 'docker model install'"
+         
+         # 2. docker model backend install vllm
+         echo "Executing: docker model backend install vllm"
+         if sudo docker model backend install vllm; then
+              echo "Successfully ran 'docker model backend install vllm'"
+         else
+              echo "Error running 'docker model backend install vllm'"
+         fi
+    else
+         echo "Error running 'docker model install'. Skipping backend installation."
+    fi
+}
+
+# Ask user if they want to install experimental features
+read -p "Do you want to install Docker experimental features (docker model, vllm)? [y/N]: " experimental_choice
+case "$experimental_choice" in
+    y|Y|yes|YES)
+        install_docker_experimental_features
+        ;;
+    *)
+        echo "Skipping Docker experimental features installation."
         ;;
 esac
 
