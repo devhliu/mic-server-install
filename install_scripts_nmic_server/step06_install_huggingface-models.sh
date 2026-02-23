@@ -131,7 +131,12 @@ download_model() {
     
     mkdir -p "${output_dir}"
     
-    python3 -c "
+    local max_retries=5
+    local retry_count=0
+    local success=false
+
+    while [ $retry_count -lt $max_retries ]; do
+        if python3 -c "
 from huggingface_hub import snapshot_download
 import os
 
@@ -141,17 +146,31 @@ revision = '${revision}'
 token = '${HF_TOKEN}' if '${HF_TOKEN}' else None
 endpoint = '${endpoint}'
 
-print(f'Starting download: {model_name}')
+print(f'Starting download (Attempt $((retry_count+1))/${max_retries}): {model_name}')
 local_dir = os.path.join(output_dir, model_name.replace('/', '_'))
 snapshot_download(
     repo_id=model_name,
     revision=revision,
     local_dir=local_dir,
     token=token,
-    endpoint=endpoint
+    endpoint=endpoint,
+    resume_download=True
 )
 print(f'Model downloaded to: {local_dir}')
-"
+"; then
+            success=true
+            break
+        else
+            echo "Download failed. Retrying in 10 seconds... ($((retry_count+1))/$max_retries)"
+            sleep 10
+            retry_count=$((retry_count+1))
+        fi
+    done
+
+    if [ "$success" = false ]; then
+        echo "Failed to download model after $max_retries attempts."
+        exit 1
+    fi
     
     echo "=========================================="
     echo "Download completed successfully!"
@@ -182,7 +201,12 @@ download_file() {
     
     mkdir -p "${output_dir}"
     
-    python3 -c "
+    local max_retries=5
+    local retry_count=0
+    local success=false
+
+    while [ $retry_count -lt $max_retries ]; do
+        if python3 -c "
 from huggingface_hub import hf_hub_download
 import os
 import re
@@ -209,6 +233,7 @@ else:
 print(f'Repo ID:   {repo_id}')
 print(f'Filename:  {filename}')
 print(f'Revision:  {revision}')
+print(f'Attempt:   $((retry_count+1))/${max_retries}')
 
 local_path = hf_hub_download(
     repo_id=repo_id,
@@ -216,10 +241,24 @@ local_path = hf_hub_download(
     revision=revision,
     local_dir=output_dir,
     token=token,
-    endpoint=endpoint
+    endpoint=endpoint,
+    resume_download=True
 )
 print(f'File downloaded to: {local_path}')
-"
+"; then
+            success=true
+            break
+        else
+            echo "Download failed. Retrying in 10 seconds... ($((retry_count+1))/$max_retries)"
+            sleep 10
+            retry_count=$((retry_count+1))
+        fi
+    done
+
+    if [ "$success" = false ]; then
+        echo "Failed to download file after $max_retries attempts."
+        exit 1
+    fi
     
     echo "=========================================="
     echo "Download completed successfully!"
