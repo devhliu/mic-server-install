@@ -14,7 +14,26 @@ if [ ! -d "$FOLDER" ]; then
     exit 1
 fi
 
-# Print header with fixed width
+echo "--- Block Devices (Physical Disks and Partitions) ---"
+# lsblk: List block devices
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL
+echo ""
+
+echo "--- Disk Space Usage (Mounted Filesystems) ---"
+# df: Report file system disk space usage
+df -h -x tmpfs -x devtmpfs
+echo ""
+
+echo "--- Disk Hardware Info (Requires sudo for full details) ---"
+if [ "$EUID" -eq 0 ]; then
+    fdisk -l | grep '^Disk /dev/'
+else
+    echo "Note: Run with sudo to see full partition table details from fdisk."
+fi
+echo ""
+
+# Show Folder Information Header
+echo "--- Folder Contents Information ---"
 # Name: 50 chars, Size: 10 chars, Creator: 15 chars, Power: 15 chars
 printf "%-50s %-10s %-15s %-15s\n" "Name" "Size(MB)" "Creator" "Power"
 printf "%-50s %-10s %-15s %-15s\n" "----" "--------" "-------" "-----"
@@ -29,7 +48,6 @@ for item in "$FOLDER"/*; do
         name=$(basename "$item")
         
         # Get size in KB first
-        # 2>/dev/null suppresses permission denied errors
         size_kb=$(du -sk "$item" 2>/dev/null | cut -f1)
         
         # If size is empty (e.g. permission denied), set to 0
@@ -44,11 +62,9 @@ for item in "$FOLDER"/*; do
         owner=$(stat -c "%U" "$item" 2>/dev/null)
         
         # Get permissions (Power)
-        # %A gives human readable form like -rw-r--r--
         perms=$(stat -c "%A" "$item" 2>/dev/null)
 
         # Print the row
-        # Truncate name if it's too long for the column to keep table alignment
         printf "%-50s %-10s %-15s %-15s\n" "${name:0:49}" "$size" "$owner" "$perms"
     fi
 done
