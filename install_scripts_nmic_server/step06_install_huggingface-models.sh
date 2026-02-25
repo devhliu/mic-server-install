@@ -153,8 +153,7 @@ snapshot_download(
     revision=revision,
     local_dir=local_dir,
     token=token,
-    endpoint=endpoint,
-    resume_download=True
+    endpoint=endpoint
 )
 print(f'Model downloaded to: {local_dir}')
 "; then
@@ -241,8 +240,7 @@ local_path = hf_hub_download(
     revision=revision,
     local_dir=output_dir,
     token=token,
-    endpoint=endpoint,
-    resume_download=True
+    endpoint=endpoint
 )
 print(f'File downloaded to: {local_path}')
 "; then
