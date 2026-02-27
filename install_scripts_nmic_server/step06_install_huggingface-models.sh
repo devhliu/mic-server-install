@@ -15,17 +15,18 @@ HF_ORIGINAL_URL="https://huggingface.co"
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Download models or specific files from Hugging Face Hub"
+    echo "Download models or specific files from Hugging Face Hub with automatic retry and mirror support"
     echo ""
     echo "Options:"
-    echo "  -t, --token TOKEN       Hugging Face API token (or set HF_TOKEN env var)"
-    echo "  -m, --model MODEL       Model name in format 'org/model-name' (for full repo download)"
-    echo "  -f, --file FILE_PATH    Download a specific file in format 'org/model/file'"
-    echo "                          Example: 'mterris/ram/ram.pth.tar' or 'mterris/ram/resolve/main/ram.pth.tar'"
+    echo "  -t, --token TOKEN       Hugging Face API token (required for private/gated models)"
+    echo "                          Alternatively, set HF_TOKEN environment variable"
+    echo "  -m, --model MODEL       Model name in format 'org/model-name' (downloads entire repository)"
+    echo "  -f, --file FILE_PATH    Download specific file in format 'org/repo/file' or"
+    echo "                          'org/repo/resolve/revision/file' for specific revisions"
     echo "  -o, --output DIR        Output directory (default: ./models)"
-    echo "  -r, --revision REVISION Model revision/branch (default: main)"
-    echo "  --mirror                Use China mirror (hf-mirror.com) [default]"
-    echo "  --original              Use original Hugging Face source"
+    echo "  -r, --revision REVISION Model revision/branch/tag (default: main)"
+    echo "  --mirror                Use China mirror (hf-mirror.com) [default for better China access]"
+    echo "  --original              Use original Hugging Face source (huggingface.co)"
     echo "  -h, --help              Show this help message"
     echo ""
     echo "Mirror Sources:"
@@ -34,20 +35,30 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  # Download entire model repository"
-    echo "  $0 -t hf_xxx -m bert-base-uncased"
-    echo "  $0 -t hf_xxx -m meta-llama/Llama-2-7b-hf -o ./llama-models"
+    echo "  $0 -m bert-base-uncased"
+    echo "  $0 -m meta-llama/Llama-2-7b-hf -o ./llama-models"
+    echo "  $0 -t hf_xxx -m microsoft/DialoGPT-medium"
     echo ""
-    echo "  # Download a specific file"
-    echo "  $0 -t hf_xxx -f mterris/ram/ram.pth.tar"
-    echo "  $0 -f mterris/ram/resolve/main/ram.pth.tar"
-    echo "  $0 -f openai/clip-vit-base-patch32/pytorch_model.bin -o ./weights"
+    echo "  # Download specific files"
+    echo "  $0 -f mterris/ram/ram.pth.tar"
+    echo "  $0 -f mterris/ram/resolve/main/ram.pth.tar -o ./checkpoints"
+    echo "  $0 -f openai/clip-vit-base-patch32/pytorch_model.bin"
+    echo "  $0 -t hf_xxx -f stabilityai/stable-diffusion-2/config.json"
     echo ""
-    echo "  # Use original source instead of mirror"
-    echo "  $0 -t hf_xxx -m bert-base-uncased --original"
+    echo "  # Use different sources"
+    echo "  $0 -m bert-base-uncased --original"
+    echo "  $0 -f mterris/ram/ram.pth.tar --mirror"
     echo ""
     echo "Environment Variables:"
-    echo "  HF_TOKEN    Hugging Face API token"
-    echo "  HF_TOKEN=hf_xxx $0 -m bert-base-uncased"
+    echo "  HF_TOKEN        Hugging Face API token for authentication"
+    echo "  MODEL_NAME      Default model name (overridden by -m)"
+    echo "  FILE_PATH       Default file path (overridden by -f)"
+    echo "  OUTPUT_DIR      Default output directory (overridden by -o)"
+    echo "  REVISION        Default revision (overridden by -r)"
+    echo "  USE_MIRROR      Set to 'false' to use original source (default: true)"
+    echo ""
+    echo "Note: The script automatically retries failed downloads (5 attempts with 10s delays)"
+    echo "      and validates input formats before proceeding."
     exit 0
 }
 
@@ -105,6 +116,34 @@ check_dependencies() {
     fi
 }
 
+validate_inputs() {
+    if [[ -n "${MODEL_NAME}" ]]; then
+        # Validate model name format (org/repo)
+        if [[ ! "${MODEL_NAME}" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+$ ]]; then
+            echo "Error: Invalid model name format. Expected: org/repo, got: ${MODEL_NAME}"
+            echo "Example: bert-base-uncased or meta-llama/Llama-2-7b-hf"
+            exit 1
+        fi
+    fi
+    
+    if [[ -n "${FILE_PATH}" ]]; then
+        # Validate file path format (org/repo/file or org/repo/resolve/revision/file)
+        if [[ ! "${FILE_PATH}" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*$ ]]; then
+            echo "Error: Invalid file path format. Expected: org/repo/file or org/repo/resolve/revision/file"
+            echo "Example: mterris/ram/ram.pth.tar or mterris/ram/resolve/main/ram.pth.tar"
+            exit 1
+        fi
+    fi
+    
+    # Validate output directory
+    if [[ ! -d "${OUTPUT_DIR}" ]]; then
+        mkdir -p "${OUTPUT_DIR}" || {
+            echo "Error: Cannot create output directory: ${OUTPUT_DIR}"
+            exit 1
+        }
+    fi
+}
+
 download_model() {
     local model_name="$1"
     local output_dir="$2"
@@ -145,8 +184,10 @@ output_dir = '${output_dir}'
 revision = '${revision}'
 token = '${HF_TOKEN}' if '${HF_TOKEN}' else None
 endpoint = '${endpoint}'
+retry_count = ${retry_count}
+max_retries = ${max_retries}
 
-print(f'Starting download (Attempt $((retry_count+1))/${max_retries}): {model_name}')
+print(f'Starting download (Attempt {retry_count+1}/{max_retries}): {model_name}')
 local_dir = os.path.join(output_dir, model_name.replace('/', '_'))
 snapshot_download(
     repo_id=model_name,
@@ -214,6 +255,8 @@ file_path = '${file_path}'
 output_dir = '${output_dir}'
 token = '${HF_TOKEN}' if '${HF_TOKEN}' else None
 endpoint = '${endpoint}'
+retry_count = ${retry_count}
+max_retries = ${max_retries}
 
 parts = file_path.split('/')
 if len(parts) < 3:
@@ -232,7 +275,7 @@ else:
 print(f'Repo ID:   {repo_id}')
 print(f'Filename:  {filename}')
 print(f'Revision:  {revision}')
-print(f'Attempt:   $((retry_count+1))/${max_retries}')
+print(f'Attempt:   {retry_count+1}/{max_retries}')
 
 local_path = hf_hub_download(
     repo_id=repo_id,
@@ -271,6 +314,7 @@ main() {
         usage
     fi
     
+    validate_inputs
     check_dependencies
     
     if [[ -n "${FILE_PATH}" ]]; then
