@@ -6,7 +6,7 @@
 # export PATH=$PATH:/opt/node/v22.20.0/bin
 
 # claude code
-npm install -g @anthropic-ai/claude-code@latest
+# npm install -g @anthropic-ai/claude-code@latest
 
 # opencode
 npm i -g opencode-ai@latest
