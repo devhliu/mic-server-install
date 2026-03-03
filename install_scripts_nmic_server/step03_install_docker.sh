@@ -5,35 +5,66 @@ set -e
 
 echo "Starting Docker and Docker Compose installation for Ubuntu 24.04..."
 
-# Add Docker's official GPG key:
+if [ ! -d /tmp ]; then sudo mkdir -p /tmp; fi
+sudo chmod 1777 /tmp
+
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl
+sudo apt-get install -y ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
 
-echo "Downloading Docker GPG key..."
-# Using Aliyun mirror for faster access in China
-sudo curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 10 https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+echo "Downloading Docker GPG key with fallbacks..."
+DOCKER_GPG_TARGET=/etc/apt/keyrings/docker.asc
+TMP_GPG=/tmp/docker.gpg.tmp
+rm -f "$TMP_GPG"
+GPG_URLS=(
+  "https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg"
+  "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu/gpg"
+  "https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg"
+  "https://download.docker.com/linux/ubuntu/gpg"
+)
+for u in "${GPG_URLS[@]}"; do
+  if sudo curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 8 "$u" -o "$TMP_GPG"; then
+    if [ -s "$TMP_GPG" ]; then
+      sudo mv "$TMP_GPG" "$DOCKER_GPG_TARGET"
+      break
+    fi
+  fi
+done
 
-# Check if the file was actually downloaded and is not empty
 if [ ! -s /etc/apt/keyrings/docker.asc ]; then
-    echo "Error: Failed to download Docker GPG key from Aliyun mirror."
-    exit 1
+  echo "Error: Failed to download Docker GPG key from all mirrors."
+  exit 1
 fi
 
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.aliyun.com/docker-ce/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
+ARCH=$(dpkg --print-architecture)
+REPO_BASES=(
+  "https://download.docker.com/linux/ubuntu"
+  "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu"
+  "https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu"
+  "https://mirrors.aliyun.com/docker-ce/linux/ubuntu"
+)
+SELECTED_BASE=""
+for base in "${REPO_BASES[@]}"; do
+  if curl -fsS --connect-timeout 5 -I "$base/dists/$CODENAME/InRelease" >/dev/null; then
+    SELECTED_BASE="$base"
+    break
+  fi
+done
+if [ -z "$SELECTED_BASE" ]; then
+  SELECTED_BASE="https://download.docker.com/linux/ubuntu"
+fi
+echo "Using Docker APT repo: $SELECTED_BASE"
+sudo rm -f /etc/apt/sources.list.d/docker.list
+echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.asc] $SELECTED_BASE $CODENAME stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
 
-# Install Docker Engine, CLI, containerd, and Docker Compose plugin
 echo "Installing Docker packages..."
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Configure Docker Hub mirrors
 echo "Configuring Docker Hub mirrors..."
 sudo mkdir -p /etc/docker
 cat <<EOF | sudo tee /etc/docker/daemon.json
@@ -53,9 +84,7 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
-# Install NVIDIA Container Toolkit
 echo "Installing NVIDIA Container Toolkit..."
-# Add the package repositories (using USTC mirror for China)
 curl -fsSL https://mirrors.ustc.edu.cn/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
   && curl -s -L https://mirrors.ustc.edu.cn/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
     sed 's#deb https://nvidia.github.io#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://mirrors.ustc.edu.cn#g' | \
@@ -74,13 +103,11 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl daemon-reload
 sudo systemctl restart docker
 
-# Verify installation
 echo "Verifying installation..."
 docker_version=$(docker --version)
 compose_version=$(docker compose version)
 nvidia_ctk_version=$(nvidia-ctk --version)
 
-# Add current user to docker group
 echo "Adding current user ($USER) to the docker group..."
 sudo usermod -aG docker $USER
 sudo chmod 666 /var/run/docker.sock

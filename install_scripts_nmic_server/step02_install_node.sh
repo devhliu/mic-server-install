@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# step02_install_node.sh - Install Node.js system-wide
+# Usage: sudo bash step02_install_node.sh [all|download|install]
+#   all      - Download and install (default)
+#   download - Only download archive to /tmp
+#   install  - Install; auto-downloads if missing
+# Installs to /opt/node/<version>, links node/npm/npx into /usr/local/bin,
+# sets PATH via /etc/profile.d, and configures npm registry mirror.
 set -euo pipefail
 
 node_version="v22.20.0"
@@ -11,9 +18,10 @@ tmp_extract_dir="/tmp/${node_dist}"
 profile_d_file="/etc/profile.d/node-${node_version}.sh"
 
 usage() {
-  echo "Usage: $0 {download|install}"
+  echo "Usage: $0 [all|download|install]"
+  echo "  all      - Download and install Node.js (default)"
   echo "  download - Download Node.js archive to /tmp"
-  echo "  install  - Install Node.js from downloaded archive to /opt"
+  echo "  install  - Install Node.js (downloads if missing)"
   exit 1
 }
 
@@ -36,9 +44,7 @@ download_node() {
 
 install_node() {
   if [ ! -f "${tmp_archive}" ]; then
-    echo "Error: Archive not found at ${tmp_archive}"
-    echo "Run '$0 download' first."
-    exit 1
+    download_node
   fi
   
   echo "Installing Node.js ${node_version} to ${install_dir}..."
@@ -62,14 +68,51 @@ EOF
   
   sudo chmod 0644 "${profile_d_file}"
   
+  echo "Linking node, npm, npx into /usr/local/bin..."
+  sudo install -d -m 0755 /usr/local/bin
+  sudo ln -sf "${install_dir}/bin/node" /usr/local/bin/node
+  sudo ln -sf "${install_dir}/bin/npm" /usr/local/bin/npm
+  sudo ln -sf "${install_dir}/bin/npx" /usr/local/bin/npx
+  
   # Configure npm mirror
   echo "Configuring npm mirror..."
-  sudo "${install_dir}/bin/npm" config set registry https://registry.npmmirror.com/ --global
+  sudo env PATH="${install_dir}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    "${install_dir}/bin/node" \
+    "${install_dir}/lib/node_modules/npm/bin/npm-cli.js" \
+    config set registry https://registry.npmmirror.com/ --global
+  
+  echo "Verifying node, npm, and npx availability..."
+  if command -v node >/dev/null 2>&1; then node -v; fi
+  if command -v npm  >/dev/null 2>&1; then npm -v; fi
+  if command -v npx  >/dev/null 2>&1; then npx -v; fi
+  
+  if [ -n "${SUDO_USER-}" ] && id "${SUDO_USER}" >/dev/null 2>&1; then
+    echo "Verifying availability for user '${SUDO_USER}'..."
+    if su - "${SUDO_USER}" -c 'command -v node >/dev/null 2>&1'; then
+      su - "${SUDO_USER}" -c 'node -v'
+    else
+      echo "Warning: node not found for ${SUDO_USER}. Ensure /usr/local/bin is in PATH."
+    fi
+    if su - "${SUDO_USER}" -c 'command -v npm >/dev/null 2>&1'; then
+      su - "${SUDO_USER}" -c 'npm -v'
+    else
+      echo "Warning: npm not found for ${SUDO_USER}. Ensure /usr/local/bin is in PATH."
+    fi
+    if su - "${SUDO_USER}" -c 'command -v npx >/dev/null 2>&1'; then
+      su - "${SUDO_USER}" -c 'npx -v'
+    else
+      echo "Warning: npx not found for ${SUDO_USER}. Ensure /usr/local/bin is in PATH."
+    fi
+  fi
   
   echo "Node ${node_version} installed, PATH configured, and npm mirror set for all users."
 }
 
 case "${1:-}" in
+  all|"")
+    download_node
+    install_node
+    ;;
   download)
     download_node
     ;;
