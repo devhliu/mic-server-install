@@ -65,6 +65,12 @@ sudo apt-get update
 echo "Installing Docker packages..."
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+echo "Enabling and starting Docker services on boot..."
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl enable --now docker.service
+  sudo systemctl enable --now containerd.service
+fi
+
 echo "Configuring Docker Hub mirrors..."
 sudo mkdir -p /etc/docker
 cat <<EOF | sudo tee /etc/docker/daemon.json
@@ -108,9 +114,12 @@ docker_version=$(docker --version)
 compose_version=$(docker compose version)
 nvidia_ctk_version=$(nvidia-ctk --version)
 
-echo "Adding current user ($USER) to the docker group..."
-sudo usermod -aG docker $USER
-sudo chmod 666 /var/run/docker.sock
+TARGET_USER="${SUDO_USER:-$USER}"
+echo "Adding user ($TARGET_USER) to the docker group..."
+if ! getent group docker >/dev/null; then
+  sudo groupadd docker
+fi
+sudo usermod -aG docker "$TARGET_USER"
 
 echo "Success! Installed versions:"
 echo "- $docker_version"
@@ -179,6 +188,7 @@ case "$experimental_choice" in
 esac
 
 echo ""
-echo "Activating docker group..."
-# Switch to the new group immediately
-newgrp docker
+echo "Next steps:"
+echo "- To use Docker without sudo, open a new session (log out/in) or run: newgrp docker"
+echo "- Verify Docker works and is connected to the daemon:"
+echo "  docker info"
