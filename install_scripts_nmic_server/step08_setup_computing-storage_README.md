@@ -77,6 +77,9 @@ ls /data02
 If the Data Server is reachable, this command should succeed and mount the directory.
 
 ### Troubleshooting
+- **Verification Failed**: The script now automatically checks if the Data Server is exporting to the Computing Server's IP using `showmount`. If you see a warning, it means the Data Server is not configured to allow your IP.
+- **"No such device" Error**: If you see `bash: cd: /data02: No such device` or mount failures, it often means the NFS export is not accessible (permission denied at NFS level).
+  - **Solution**: Run the script again on the **Data Server** (Option 2). The updated script now correctly adds multiple export entries if you have multiple clients.
 - **Warning: /data02 is NOT mounted yet**: This is normal if the Data Server is not reachable yet. The `x-systemd.automount` feature will retry when you access the directory.
 - **Permission Denied**: Check firewall rules (UFW) on the Data Server to ensure port 2049 (NFS) is open to the Computing Server IP.
   ```bash

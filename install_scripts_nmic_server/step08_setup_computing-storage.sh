@@ -50,6 +50,33 @@ if [ "$server_role" == "1" ]; then
         exit 1
     fi
 
+    # 1.5 Verify NFS Export
+    echo "Verifying NFS export from $DATA_SERVER_IP..."
+    if ! showmount -e "$DATA_SERVER_IP" > /dev/null 2>&1; then
+         echo "Error: Unable to query NFS exports from $DATA_SERVER_IP."
+         echo "Ensure the Data Server is reachable and NFS server is running."
+         read -p "Warning: Could not verify exports. Continue? (y/N) " confirm
+         if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then exit 1; fi
+    else
+        EXPORTS=$(showmount -e "$DATA_SERVER_IP")
+        echo "Server exports:"
+        echo "$EXPORTS"
+        
+        if ! echo "$EXPORTS" | grep -q "$COMPUTING_SERVER_IP"; then
+            echo "----------------------------------------------------------------"
+            echo "WARNING: The Data Server ($DATA_SERVER_IP) does not seem to export"
+            echo "         directories to this machine ($COMPUTING_SERVER_IP)."
+            echo "         It currently exports to: $(echo "$EXPORTS" | grep /data | awk '{print $2}')"
+            echo "----------------------------------------------------------------"
+            echo "Please update /etc/exports on the Data Server to allow access from $COMPUTING_SERVER_IP."
+            read -p "Do you want to continue anyway? (y/N) " confirm
+            if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+                echo "Aborting setup."
+                exit 1
+            fi
+        fi
+    fi
+
     # 2. Create local directories
     echo "Creating directories..."
     mkdir -p "$DATA_DIR_COMPUTING_1"
@@ -124,17 +151,11 @@ elif [ "$server_role" == "2" ]; then
     cp /etc/exports /etc/exports.bak.$(date +%F_%T)
 
     # Remove existing entry for this directory/IP combo to avoid duplicates
-    # This regex is simple; purely appending is safer if not sure, but we want to update.
-    # We'll just append and let exportfs warn/handle duplicates or clean up manually if needed.
-    # A simple check:
-    if grep -q "^$DATA_DIR_DATA" /etc/exports; then
-        echo "Entry for $DATA_DIR_DATA exists in /etc/exports. Please verify manually if it needs updating."
-        echo "Proposed entry: $EXPORT_ENTRY"
-        # Uncomment to force update:
-        # sed -i "\|^$DATA_DIR_DATA|d" /etc/exports
-        # echo "$EXPORT_ENTRY" >> /etc/exports
+    # We check if the specific export to the COMPUTING_SERVER_IP exists.
+    if grep -q "^$DATA_DIR_DATA.*$COMPUTING_SERVER_IP" /etc/exports; then
+        echo "Entry for $DATA_DIR_DATA to $COMPUTING_SERVER_IP already exists in /etc/exports."
     else
-        echo "Adding entry to /etc/exports..."
+        echo "Adding entry for $DATA_DIR_DATA to $COMPUTING_SERVER_IP in /etc/exports..."
         echo "$EXPORT_ENTRY" >> /etc/exports
     fi
 
