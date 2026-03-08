@@ -41,10 +41,10 @@ sudo chmod a+r /etc/apt/keyrings/docker.asc
 CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
 ARCH=$(dpkg --print-architecture)
 REPO_BASES=(
-  "https://download.docker.com/linux/ubuntu"
   "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu"
   "https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu"
   "https://mirrors.aliyun.com/docker-ce/linux/ubuntu"
+  "https://download.docker.com/linux/ubuntu"
 )
 SELECTED_BASE=""
 for base in "${REPO_BASES[@]}"; do

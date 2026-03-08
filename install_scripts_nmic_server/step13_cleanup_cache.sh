@@ -16,7 +16,6 @@ DEFAULT_DIR_PATTERNS=(
     "pip-wheel-metadata"
     ".vscode"
     ".idea"
-    "node_modules"
     ".npm"
     ".cache"
     ".nv"

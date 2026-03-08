@@ -112,7 +112,7 @@ check_dependencies() {
     
     if ! python3 -c "import huggingface_hub" 2>/dev/null; then
         echo "Installing huggingface_hub package..."
-        pip install huggingface_hub[cli] -q
+        pip install huggingface_hub[cli] -q -i https://pypi.mirrors.pku.edu.cn/simple
     fi
 }
 
