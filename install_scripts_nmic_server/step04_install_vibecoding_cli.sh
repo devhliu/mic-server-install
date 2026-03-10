@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# npm install -g npm@11.10.0
+npm install -g npm@11.11.0
 
 # npm and node are now available in/opt/node/v22.20.0/bin and can be used without sudo
 # export PATH=$PATH:/opt/node/v22.20.0/bin

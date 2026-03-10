@@ -91,9 +91,9 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 EOF
 
 echo "Installing NVIDIA Container Toolkit..."
-curl -fsSL https://mirrors.ustc.edu.cn/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-  && curl -s -L https://mirrors.ustc.edu.cn/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-    sed 's#deb https://nvidia.github.io#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://mirrors.ustc.edu.cn#g' | \
+curl -fsSL https://mirrors.aliyun.com/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://mirrors.aliyun.com/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://nvidia.github.io#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://mirrors.aliyun.com#g' | \
     sed "s#\$(ARCH)#$(dpkg --print-architecture)#g" | \
     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
