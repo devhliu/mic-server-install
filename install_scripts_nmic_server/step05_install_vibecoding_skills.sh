@@ -24,4 +24,5 @@ npx skills add https://github.com/luwill/research-skills -a opencode -a trae-cn 
 npx skills add https://github.com/ovachiever/droid-tings --skill reportlab -a opencode -a trae-cn -a trae -g
 npx skills add https://github.com/obra/superpowers -a opencode -a trae-cn -a trae -g
 npx skills add https://github.com/composiohq/awesome-claude-skills -a opencode -a trae-cn -a trae -g
+npx skills add https://github.com/claude-office-skills/skills -a opencode -a trae-cn -a trae -g
 
