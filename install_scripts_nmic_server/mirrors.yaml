@@ -1,8 +1,8 @@
 mirrors:
   python:
     pip:
-      registry: https://pypi.mirrors.pku.edu.cn/simple
-      command: pip install -i https://pypi.mirrors.pku.edu.cn/simple some-package
+      registry: https://pypi.tuna.tsinghua.edu.cn/simple
+      command: pip install -i https://pypi.tuna.tsinghua.edu.cn/simple some-package
     conda:
       channels:
         - https://mirrors.pku.edu.cn/anaconda/pkgs/free/

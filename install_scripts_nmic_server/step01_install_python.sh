@@ -37,8 +37,8 @@ pip_config_file="/etc/pip.conf"
 echo "Configuring pip mirror..."
 sudo tee "${pip_config_file}" > /dev/null <<EOF
 [global]
-index-url = https://pypi.mirrors.pku.edu.cn/simple
-trusted-host = pypi.mirrors.pku.edu.cn
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+trusted-host = pypi.tuna.tsinghua.edu.cn
 EOF
 sudo chmod 0644 "${pip_config_file}"
 
