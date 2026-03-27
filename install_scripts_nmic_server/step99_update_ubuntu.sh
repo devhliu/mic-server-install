@@ -68,6 +68,10 @@ install_ai_tools() {
   # Install opencode-ai
   echo "Installing opencode-ai@${OPENCODE_AI_VERSION}..."
   sudo npm install -g opencode-ai@${OPENCODE_AI_VERSION}
+
+  # Install kikocode
+  echo "Installing kilocode..."
+  sudo npm install -g @kilocode/cli
   
   # Install codebuddy-code
   echo "Installing @tencent-ai/codebuddy-code@${CODEBUDDY_CODE_VERSION}..."
