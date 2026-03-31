@@ -68,7 +68,7 @@ install_ai_tools() {
   # Install opencode-ai
   echo "Installing opencode-ai@${OPENCODE_AI_VERSION}..."
   sudo npm install -g opencode-ai@${OPENCODE_AI_VERSION}
-
+  
   # Install kikocode
   echo "Installing kilocode..."
   sudo npm install -g @kilocode/cli
@@ -80,6 +80,10 @@ install_ai_tools() {
   # Install GitHub Copilot CLI
   echo "Installing @github/copilot@${COPILOT_CLI_VERSION}..."
   sudo npm install -g @github/copilot@${COPILOT_CLI_VERSION}
+
+  # Install lark-cli
+  echo "Installing lark-cli..."
+  npm install -g @larksuite/cli
   
   # Verify installations
   echo "Verifying tool installations..."
