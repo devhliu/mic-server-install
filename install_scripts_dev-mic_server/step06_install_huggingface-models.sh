@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/install_utils.sh"
 
 HF_TOKEN="${HF_TOKEN:-}"
 MODEL_NAME="${MODEL_NAME:-}"
@@ -124,12 +126,12 @@ download_model() {
     echo "Downloading Hugging Face Model"
     echo "=========================================="
     echo "Model:     ${model_name}"
-    echo "Revision:  ${revision}"
     echo "Output:    ${output_dir}"
+    echo "Revision:  ${revision}"
     echo "Endpoint:  ${endpoint}"
     echo "=========================================="
     
-    mkdir -p "${output_dir}"
+    run_cmd "$USE_SUDO" mkdir -p "${output_dir}"
     
     python3 -c "
 from huggingface_hub import snapshot_download
@@ -180,7 +182,7 @@ download_file() {
     echo "Endpoint:  ${endpoint}"
     echo "=========================================="
     
-    mkdir -p "${output_dir}"
+    run_cmd "$USE_SUDO" mkdir -p "${output_dir}"
     
     python3 -c "
 from huggingface_hub import hf_hub_download
@@ -232,6 +234,14 @@ main() {
     if [[ -z "${MODEL_NAME}" && -z "${FILE_PATH}" ]]; then
         echo "Error: Either model name (-m) or file path (-f) is required."
         usage
+    fi
+    
+    USE_SUDO="false"
+    if needs_sudo "$OUTPUT_DIR"; then
+      USE_SUDO="true"
+      echo "Output directory ${OUTPUT_DIR} requires sudo."
+    else
+      echo "Output directory ${OUTPUT_DIR} does not require sudo."
     fi
     
     check_dependencies

@@ -1,16 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Exit on error
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/install_utils.sh"
 
 echo "Starting Docker and Docker Compose installation for Ubuntu 24.04..."
+echo "Note: Docker is a system-level service and always requires sudo for installation."
 
-if [ ! -d /tmp ]; then sudo mkdir -p /tmp; fi
-sudo chmod 1777 /tmp
+USE_SUDO="true"
 
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
+if [ ! -d /tmp ]; then run_cmd "$USE_SUDO" mkdir -p /tmp; fi
+run_cmd "$USE_SUDO" chmod 1777 /tmp
+
+run_cmd "$USE_SUDO" apt-get update
+run_cmd "$USE_SUDO" apt-get install -y ca-certificates curl gnupg
+run_cmd "$USE_SUDO" install -m 0755 -d /etc/apt/keyrings
 
 echo "Downloading Docker GPG key with fallbacks..."
 DOCKER_GPG_TARGET=/etc/apt/keyrings/docker.asc
@@ -23,9 +27,9 @@ GPG_URLS=(
   "https://download.docker.com/linux/ubuntu/gpg"
 )
 for u in "${GPG_URLS[@]}"; do
-  if sudo curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 8 "$u" -o "$TMP_GPG"; then
+  if run_cmd "$USE_SUDO" curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 8 "$u" -o "$TMP_GPG"; then
     if [ -s "$TMP_GPG" ]; then
-      sudo mv "$TMP_GPG" "$DOCKER_GPG_TARGET"
+      run_cmd "$USE_SUDO" mv "$TMP_GPG" "$DOCKER_GPG_TARGET"
       break
     fi
   fi
@@ -36,7 +40,7 @@ if [ ! -s /etc/apt/keyrings/docker.asc ]; then
   exit 1
 fi
 
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+run_cmd "$USE_SUDO" chmod a+r /etc/apt/keyrings/docker.asc
 
 CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
 ARCH=$(dpkg --print-architecture)
@@ -57,23 +61,23 @@ if [ -z "$SELECTED_BASE" ]; then
   SELECTED_BASE="https://download.docker.com/linux/ubuntu"
 fi
 echo "Using Docker APT repo: $SELECTED_BASE"
-sudo rm -f /etc/apt/sources.list.d/docker.list
+run_cmd "$USE_SUDO" rm -f /etc/apt/sources.list.d/docker.list
 echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.asc] $SELECTED_BASE $CODENAME stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-sudo apt-get update
+  run_cmd "$USE_SUDO" tee /etc/apt/sources.list.d/docker.list >/dev/null
+run_cmd "$USE_SUDO" apt-get update
 
 echo "Installing Docker packages..."
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+run_cmd "$USE_SUDO" apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 echo "Enabling and starting Docker services on boot..."
 if command -v systemctl >/dev/null 2>&1; then
-  sudo systemctl enable --now docker.service
-  sudo systemctl enable --now containerd.service
+  run_cmd "$USE_SUDO" systemctl enable --now docker.service
+  run_cmd "$USE_SUDO" systemctl enable --now containerd.service
 fi
 
 echo "Configuring Docker Hub mirrors..."
-sudo mkdir -p /etc/docker
-cat <<EOF | sudo tee /etc/docker/daemon.json
+run_cmd "$USE_SUDO" mkdir -p /etc/docker
+cat <<EOF | run_cmd "$USE_SUDO" tee /etc/docker/daemon.json
 {
   "registry-mirrors": [
     "https://docker.1ms.run",
@@ -91,23 +95,20 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 EOF
 
 echo "Installing NVIDIA Container Toolkit..."
-curl -fsSL https://mirrors.aliyun.com/libnvidia-container/gpgkey | sudo gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+curl -fsSL https://mirrors.aliyun.com/libnvidia-container/gpgkey | run_cmd "$USE_SUDO" gpg --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
   && curl -s -L https://mirrors.aliyun.com/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
     sed 's#deb https://nvidia.github.io#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://mirrors.aliyun.com#g' | \
     sed "s#\$(ARCH)#$(dpkg --print-architecture)#g" | \
-    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    run_cmd "$USE_SUDO" tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
-# Install the package
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
+run_cmd "$USE_SUDO" apt-get update
+run_cmd "$USE_SUDO" apt-get install -y nvidia-container-toolkit
 
-# Configure the container runtime
 echo "Configuring NVIDIA container runtime..."
-sudo nvidia-ctk runtime configure --runtime=docker
+run_cmd "$USE_SUDO" nvidia-ctk runtime configure --runtime=docker
 
-# Restart Docker to apply changes
-sudo systemctl daemon-reload
-sudo systemctl restart docker
+run_cmd "$USE_SUDO" systemctl daemon-reload
+run_cmd "$USE_SUDO" systemctl restart docker
 
 echo "Verifying installation..."
 docker_version=$(docker --version)
@@ -117,9 +118,9 @@ nvidia_ctk_version=$(nvidia-ctk --version)
 TARGET_USER="${SUDO_USER:-$USER}"
 echo "Adding user ($TARGET_USER) to the docker group..."
 if ! getent group docker >/dev/null; then
-  sudo groupadd docker
+  run_cmd "$USE_SUDO" groupadd docker
 fi
-sudo usermod -aG docker "$TARGET_USER"
+run_cmd "$USE_SUDO" usermod -aG docker "$TARGET_USER"
 
 echo "Success! Installed versions:"
 echo "- $docker_version"
@@ -127,22 +128,19 @@ echo "- $compose_version"
 echo "- $nvidia_ctk_version"
 echo ""
 
-# Function to remove dirty (dangling) docker images
 remove_dirty_images() {
     echo "Checking for dirty (dangling) docker images..."
-    # Using sudo to ensure permissions before group update takes effect
-    dirty_images=$(sudo docker images --filter "dangling=true" -q)
+    dirty_images=$(run_cmd "$USE_SUDO" docker images --filter "dangling=true" -q)
     if [ -n "$dirty_images" ]; then
         echo "Found dirty images, removing them..."
-        sudo docker rmi $(sudo docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
-        sudo docker image prune -f
+        run_cmd "$USE_SUDO" docker rmi $(run_cmd "$USE_SUDO" docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
+        run_cmd "$USE_SUDO" docker image prune -f
         echo "Dirty images removed."
     else
         echo "No dirty images found."
     fi
 }
 
-# Ask user if they want to remove dirty images
 read -p "Do you want to remove dirty (dangling) docker images? [y/N]: " remove_choice
 case "$remove_choice" in
     y|Y|yes|YES)
@@ -155,18 +153,15 @@ esac
 
 echo ""
 
-# Function to install docker experimental features
 install_docker_experimental_features() {
     echo "Installing Docker experimental features..."
     
-    # 1. docker model install
     echo "Executing: docker model install"
-    if sudo docker model install; then
+    if run_cmd "$USE_SUDO" docker model install; then
          echo "Successfully ran 'docker model install'"
          
-         # 2. docker model backend install vllm
          echo "Executing: docker model backend install vllm"
-         if sudo docker model backend install vllm; then
+         if run_cmd "$USE_SUDO" docker model backend install vllm; then
               echo "Successfully ran 'docker model backend install vllm'"
          else
               echo "Error running 'docker model backend install vllm'"
@@ -176,7 +171,6 @@ install_docker_experimental_features() {
     fi
 }
 
-# Ask user if they want to install experimental features
 read -p "Do you want to install Docker experimental features (docker model, vllm)? [y/N]: " experimental_choice
 case "$experimental_choice" in
     y|Y|yes|YES)

@@ -1,35 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/install_utils.sh"
 
 echo "Starting Docker and Docker Compose installation for Ubuntu 24.04..."
+echo "Note: Docker is a system-level service and always requires sudo for installation."
 
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
+USE_SUDO="true"
+
+run_cmd "$USE_SUDO" apt-get update
+run_cmd "$USE_SUDO" apt-get install -y ca-certificates curl
+run_cmd "$USE_SUDO" install -m 0755 -d /etc/apt/keyrings
 
 echo "Downloading Docker GPG key..."
-sudo curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 10 https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+run_cmd "$USE_SUDO" curl -fsSL --retry 5 --retry-delay 2 --connect-timeout 10 https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 
 if [ ! -s /etc/apt/keyrings/docker.asc ]; then
     echo "Error: Failed to download Docker GPG key from Aliyun mirror."
     exit 1
 fi
 
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+run_cmd "$USE_SUDO" chmod a+r /etc/apt/keyrings/docker.asc
 
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.aliyun.com/docker-ce/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
+  run_cmd "$USE_SUDO" tee /etc/apt/sources.list.d/docker.list > /dev/null
+run_cmd "$USE_SUDO" apt-get update
 
 echo "Installing Docker packages..."
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+run_cmd "$USE_SUDO" apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 echo "Configuring Docker Hub mirrors..."
-sudo mkdir -p /etc/docker
-cat <<EOF | sudo tee /etc/docker/daemon.json
+run_cmd "$USE_SUDO" mkdir -p /etc/docker
+cat <<EOF | run_cmd "$USE_SUDO" tee /etc/docker/daemon.json
 {
   "registry-mirrors": [
     "https://docker.1ms.run",
@@ -46,15 +51,16 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl restart docker
+run_cmd "$USE_SUDO" systemctl daemon-reload
+run_cmd "$USE_SUDO" systemctl restart docker
 
 echo "Verifying installation..."
 docker_version=$(docker --version)
 compose_version=$(docker compose version)
 
-echo "Adding current user ($USER) to the docker group..."
-sudo usermod -aG docker $USER
+TARGET_USER="${SUDO_USER:-$USER}"
+echo "Adding user ($TARGET_USER) to the docker group..."
+run_cmd "$USE_SUDO" usermod -aG docker "$TARGET_USER"
 
 echo "Success! Installed versions:"
 echo "- $docker_version"
@@ -63,11 +69,11 @@ echo ""
 
 remove_dirty_images() {
     echo "Checking for dirty (dangling) docker images..."
-    dirty_images=$(docker images --filter "dangling=true" -q)
+    dirty_images=$(run_cmd "$USE_SUDO" docker images --filter "dangling=true" -q)
     if [ -n "$dirty_images" ]; then
         echo "Found dirty images, removing them..."
-        docker rmi $(docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
-        docker image prune -f
+        run_cmd "$USE_SUDO" docker rmi $(run_cmd "$USE_SUDO" docker images | grep "^<none>" | awk "{print \$3}") 2>/dev/null || true
+        run_cmd "$USE_SUDO" docker image prune -f
         echo "Dirty images removed."
     else
         echo "No dirty images found."

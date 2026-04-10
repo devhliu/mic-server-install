@@ -1,56 +1,106 @@
 # MIC Server Install
 
-A comprehensive collection of installation scripts and utilities for setting up Kubernetes (MicroK8s) development environments on Ubuntu systems, with optimized configurations for users in China.
+**Version: 0.1.0**
+
+A comprehensive collection of installation scripts and utilities for setting up development environments on Ubuntu systems, with optimized configurations for users in China.
+
+## Quick Start
+
+Choose your installation profile:
+
+### 🚀 Development Server (Recommended)
+```bash
+cd install_scripts_dev-mic_server
+./step00_install_ubuntu.sh
+./step01_install_python.sh
+./step02_install_node.sh download && ./step02_install_node.sh install
+./step03_install_docker.sh
+./step04_install_vibecoding_cli.sh
+./step05_install_vibecoding_skills.sh
+```
+
+### 🏭 Production Server
+```bash
+cd install_scripts_nmic_server
+./step00_install_ubuntu.sh
+./step01_install_python.sh
+./step02_install_node.sh download && ./step02_install_node.sh install
+./step03_install_docker.sh
+./step04_install_vibecoding_cli.sh
+```
+
+### ☸️ Kubernetes (MicroK8s)
+```bash
+cd install_scripts_k8s
+./install.sh
+```
 
 ## Project Structure
 
 ```
-kubemic-install/
-├── install_scripts_ubuntu_mic/    # MicroK8s installation for Ubuntu WSL/Desktop
-│   ├── steps/                     # Step-by-step installation scripts
-│   ├── docker/                    # Docker utilities and scripts
-│   ├── gpu/                       # GPU/NVIDIA driver setup
-│   ├── python/                    # Python utilities
-│   ├── nodejs/                    # Node.js installation
-│   ├── helm/                      # Helm installation
-│   ├── storage-openebs/           # OpenEBS storage configuration
-│   ├── storage-nfs-harbor/        # NFS storage for Harbor
-│   ├── local-harbor/              # Harbor registry deployment
-│   └── hosts/                     # Hosts configuration
+mic-server-install/
+├── common/                        # Shared utilities and configurations
+│   ├── install_utils.sh          # Common bash functions
+│   ├── mirrors.yaml              # Mirror configurations for China
+│   └── README.md                 # Utilities documentation
 │
-├── install_scripts_dev-mic_server/ # Development server setup (Ubuntu 24.04)
-│   └── Vibe Coding environment with AI tools
+├── install_scripts_dev-mic_server/  # Development environment
+│   ├── README.MD                 # Detailed installation guide
+│   ├── install_utils.sh          # Sources from common/
+│   └── step*.sh                  # Installation scripts
 │
-├── install_scripts_nmic_server/   # NMIC server setup (Ubuntu 24.04)
-│   └── Production server configuration
+├── install_scripts_nmic_server/  # Production environment
+│   ├── README.MD                 # Detailed installation guide
+│   ├── install_utils.sh          # Sources from common/
+│   └── step*.sh                  # Installation scripts
 │
-└── docs/                          # Documentation and guides
-    ├── ubuntu_wsl/                # WSL-specific configurations
-    └── Various configuration guides
+├── install_scripts_k8s/          # Kubernetes (MicroK8s)
+│   ├── README.md                 # Kubernetes setup guide
+│   ├── install.sh                # Main installation script
+│   ├── install_utils.sh          # Kubernetes-specific utilities
+│   ├── steps/                    # Step-by-step installation
+│   ├── docker/                   # Docker utilities
+│   ├── gpu/                      # GPU support
+│   ├── local-harbor/             # Harbor registry
+│   └── storage-*/                # Storage configurations
+│
+└── docs/                         # Additional documentation
+    ├── ubuntu_wsl/               # WSL-specific guides
+    └── *.md                      # Various configuration guides
 ```
 
 ## Installation Profiles
 
-### 1. Ubuntu MIC (MicroK8s on Ubuntu WSL/Desktop)
+### 1. Development Server (Dev MIC)
 
-For setting up a local Kubernetes development environment with MicroK8s:
+**Purpose**: Vibe Coding development environment with AI tools
 
-**Prerequisites**: Ubuntu 20.04/24.04 LTS
+**Key Features**:
+- Python 3.12 (Miniconda3)
+- Node.js v22.20.0
+- Docker with multiple registry mirrors
+- AI Coding Tools: Claude Code, Opencode, CodeBuddy, GitHub Copilot
+- Hugging Face model downloader
 
-```bash
-cd install_scripts_ubuntu_mic
+**Detailed Guide**: [install_scripts_dev-mic_server/README.MD](install_scripts_dev-mic_server/README.MD)
 
-# Full installation
-./install-ubuntu_20.04-microk8s.sh
+### 2. Production Server (NMIC)
 
-# Or step-by-step:
-./steps/step_001_config_ubuntu.sh
-./steps/step_002_install_minianaconda3.sh
-./steps/step_003_install_docker.sh
-./steps/step_004_install_nvidia_docker.sh  # If GPU available
-```
+**Purpose**: Production-ready server configuration
 
-**Features**:
+**Key Features**:
+- Same as Dev MIC plus:
+- System optimization and cleanup scripts
+- Storage management utilities
+- Model downloaders (HuggingFace, ModelScope)
+
+**Detailed Guide**: [install_scripts_nmic_server/README.MD](install_scripts_nmic_server/README.MD)
+
+### 3. Kubernetes (MicroK8s)
+
+**Purpose**: Local Kubernetes development cluster
+
+**Key Features**:
 - MicroK8s with GPU support
 - Docker with NVIDIA runtime
 - Helm 3 package manager
@@ -58,119 +108,100 @@ cd install_scripts_ubuntu_mic
 - Harbor container registry
 - MetalLB load balancer
 
-### 2. Dev MIC Server (Development Server)
+**Detailed Guide**: [install_scripts_k8s/README.md](install_scripts_k8s/README.md)
 
-For setting up a Vibe Coding development environment on Ubuntu 24.04:
+## Key Features
 
-```bash
-cd install_scripts_dev-mic_server
-
-chmod +x step*.sh
-
-./step00_install_ubuntu.sh        # System optimization with PKU mirrors
-./step01_install_python.sh        # Miniconda3 with Python 3.12
-./step02_install_node.sh download # Download Node.js v22
-./step02_install_node.sh install  # Install Node.js
-./step03_install_docker.sh        # Docker + Docker Compose
-./step04_install_vibecoding_cli.sh # AI coding tools
-./step05_install_vibecoding_skills.sh # AI coding skills
-./step06_install_huggingface-models.sh -m <model> # Download HF models
-```
-
-**Installed Components**:
-- Python: Miniconda3-py312 (Python 3.12)
-- Node.js: v22.20.0
-- Docker: Latest CE with multiple registry mirrors
-- AI Tools: Claude Code, Opencode, Codebuddy, GitHub Copilot
-
-### 3. NMIC Server (Production Server)
-
-Similar to Dev MIC Server but optimized for production:
-
-```bash
-cd install_scripts_nmic_server
-
-chmod +x step*.sh
-
-./step00_install_ubuntu.sh
-./step01_install_python.sh
-./step02_install_node.sh download
-./step02_install_node.sh install
-./step03_install_docker.sh
-./step04_install_vibecoding_cli.sh
-```
-
-## Docker Utilities
-
-Located in `install_scripts_ubuntu_mic/docker/`:
-
-| File | Description |
-|------|-------------|
-| `utils.md` | Docker save/load commands |
-| `mirror.md` | Mirror configurations for various package managers |
-| `clearn.md` | Docker cleanup commands |
-| `batch_save_docker_images.py` | Batch save Docker images to tar files |
-| `batch_retag_docker_images.py` | Batch retag and manage Docker images |
-
-## Storage Configuration
-
-### OpenEBS (Local Storage)
-
-```bash
-cd install_scripts_ubuntu_mic/storage-openebs
-kubectl apply -f local-openebs-sc.yaml
-```
-
-### NFS Storage (for Harbor)
-
-```bash
-cd install_scripts_ubuntu_mic/storage-nfs-harbor
-./ubuntu_microk8s_storage.sh
-```
-
-## Harbor Registry
-
-Deploy a local Harbor container registry:
-
-```bash
-cd install_scripts_ubuntu_mic/local-harbor
-./install.sh
-```
-
-## GPU Support
-
-For NVIDIA GPU support:
-
-```bash
-cd install_scripts_ubuntu_mic/gpu
-./install.sh
-```
-
-Verify GPU availability:
-```bash
-python torch_available.py
-```
-
-## Mirror Configurations (China)
+### 🌏 China Mirror Support
 
 All installation scripts are pre-configured with China mirrors for faster downloads:
 
 | Package Manager | Mirror |
 |-----------------|--------|
 | Ubuntu APT | PKU Mirror (`mirrors.pku.edu.cn`) |
-| Pip | PKU Mirror (`pypi.mirrors.pku.edu.cn`) |
-| Conda | PKU Mirror channels |
+| Python (Pip) | Tsinghua Mirror (`pypi.tuna.tsinghua.edu.cn`) |
+| Python (Conda) | PKU Mirror (`mirrors.pku.edu.cn`) |
 | NPM | NpmMirror (`registry.npmmirror.com`) |
 | Docker | Multiple mirrors (Aliyun, Baidu, Tencent, SJTU) |
 | HuggingFace | hf-mirror.com |
 
-## WSL2 Specific
+### 🔐 Intelligent Sudo Usage
 
-For WSL2-specific configurations:
+Scripts automatically detect when sudo is needed:
+- **System paths** (`/opt`, `/usr`, `/etc`): Automatically use sudo
+- **User paths** (`$HOME`, `~`): Run without sudo
+
+### 📦 Modular Design
+
+- Each installation profile is self-contained
+- Individual steps can be run independently
+- Shared utilities reduce code duplication
+
+## Common Operations
+
+### Post-Installation
+
+After installing Docker, refresh your group membership:
 
 ```bash
-cd docs/ubuntu_wsl
-./snapd_wsl2.sh  # Enable snapd in WSL2
+newgrp docker
+# Or log out and log back in
+```
+
+### Verify Installation
+
+```bash
+# Python
+python --version
+conda --version
+
+# Node.js
+node --version
+npm --version
+
+# Docker
+docker --version
+docker run hello-world
+
+# Kubernetes (if installed)
+microk8s status
+kubectl get nodes
+```
+
+### GPU Support
+
+For NVIDIA GPU support:
+
+```bash
+cd install_scripts_k8s/gpu
+./install.sh
+
+# Verify
+python torch_available.py
+```
+
+## Utilities
+
+### Docker Utilities (`install_scripts_k8s/docker/`)
+
+- `batch_save_docker_images.py` - Batch save Docker images to tar files
+- `batch_retag_docker_images.py` - Batch retag and manage Docker images
+- `utils.md` - Docker save/load commands
+- `mirror.md` - Mirror configurations
+- `clearn.md` - Docker cleanup commands
+
+### Storage Configuration
+
+- **OpenEBS**: `install_scripts_k8s/storage-openebs/` - Local storage
+- **NFS**: `install_scripts_k8s/storage-nfs-harbor/` - NFS for Harbor
+
+### Harbor Registry
+
+Deploy a local Harbor container registry:
+
+```bash
+cd install_scripts_k8s/local-harbor
+./install.sh
 ```
 
 ## Documentation
@@ -182,7 +213,22 @@ Additional documentation available in `docs/`:
 - `microk8s_pvc.md` - Persistent volume claims
 - `kubeapps.md` - Kubeapps installation
 - `cn_mirror.md` - China mirror configurations
-- `clean_microk8s_repos.md` - Cleanup MicroK8s repositories
+- `ubuntu_wsl/` - WSL-specific configurations
+
+## Requirements
+
+- **Operating System**: Ubuntu 20.04/24.04 LTS
+- **Privileges**: Sudo access required for most installations
+- **Network**: Internet connection for package downloads
+
+## Contributing
+
+When contributing:
+
+1. Use shared utilities from `common/` directory
+2. Follow the existing code structure
+3. Test across all installation profiles
+4. Update documentation as needed
 
 ## License
 
